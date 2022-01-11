@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IconButton, Button, CssBaseline, TextField, Box, Grid, Typography, RadioGroup, FormControlLabel, Radio}from '@mui/material';
+import { IconButton, Button, CssBaseline, TextField, Box, Grid, Typography, RadioGroup, FormControlLabel, Radio, Alert} from '@mui/material';
 import { ArrowBackIosNew } from '@mui/icons-material';
 
 import ProfilePicture  from './ProfilePicture';
@@ -21,6 +21,7 @@ export default function Profile() {
     });
 
   const [errors, setErrors] = useState({});
+  const [dataUpdateMessage, setDataUpdateMessage] = useState(false)
 
   useEffect(() => {
     AuthService.getUserData().then(resp => {
@@ -48,7 +49,11 @@ export default function Profile() {
 
     AuthService.updateUserData(formdata).then(resp => {
       if (resp.status == 200) {
-        setUser(resp.data)
+        setUser(resp.data);
+        setDataUpdateMessage(true);
+        setTimeout(() => {
+          setDataUpdateMessage(false);
+        }, 3000);
       } else {
         setErrors(resp.response.data);
       }
@@ -69,6 +74,7 @@ export default function Profile() {
 
 
   return (
+    <>
       <Grid container component="main" sx={{ height: '100vh', }}>
         <CssBaseline />
         <Grid item justifyContent="center" xs={12} sm={6} md={4} >
@@ -217,18 +223,29 @@ export default function Profile() {
             </Grid>
             <Grid container justifyContent="flex-start">
               <Grid item>
-                    <Button
-                    variant="contained"
-                    sx={{ mt: 2, mb: 2 }}
-                    onClick={(e) => updateUserData(e)}
-                    >
-                    Update
-                    </Button>
-                </Grid>
+                <Button
+                variant="contained"
+                sx={{ mt: 2, mb: 2 }}
+                onClick={(e) => updateUserData(e)}
+                >
+                  Update
+                </Button>
+              </Grid>
             </Grid>
           </Box>
           </Box>
         </Grid>
       </Grid>
+      <Alert style={{
+          position: 'absolute', 
+          display: dataUpdateMessage ? 'flex' : 'none',
+          top: 30, 
+          right: 30, 
+          backgroundColor: 'white', color: 'green'
+        }}
+        severity="success">
+          Updated successfully.
+        </Alert>
+    </>
   );
 }

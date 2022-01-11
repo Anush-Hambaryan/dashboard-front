@@ -31,7 +31,7 @@ export default function AccountsPopover() {
 
   return (
     <div>
-      <IconButton rounded size='small' aria-describedby={id} onClick={handleClick} style={{marginRight: 0}}>
+      <IconButton size='small' aria-describedby={id} onClick={handleClick} style={{marginRight: 0}}>
         <Icon path={mdiAccount} size={0.8} />
       </IconButton>
       <Popover

@@ -17,7 +17,7 @@ function ProfilePicture(props) {
 
     return (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{ padding: 30, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ padding: 30, paddingTop: 55, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <input
                         accept="image/*"
                         style={{ display: "none" }}
@@ -33,10 +33,9 @@ function ProfilePicture(props) {
                         </label>
                     </IconButton>
                 <Paper elevation={4} style={{padding: 30 }}>
-                
-                <img src={ selectedImage ?  selectedImage : props.image ? props.image : "human_avatar.png"} alt="" width="200px" height="200px" 
-                style={{borderRadius: '5px', }}
-                />
+                    <img src={ selectedImage ?  selectedImage : props.image ? props.image : "avatar_grey.png"} alt="" width="180px" height="180px" 
+                    style={{borderRadius: '5px', }}
+                    />
                 </Paper>
             </div>
         </div>

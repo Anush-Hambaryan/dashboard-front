@@ -20,7 +20,6 @@ export default class apiService {
 
     static postJobReport(jobType, job) {
         const token = localStorage.getItem("token");
-        console.log(token);
         return axios
         .post(`http://127.0.0.1:8000/${jobType}/`, job, { headers: {
             "Authorization": `Token ${token}`

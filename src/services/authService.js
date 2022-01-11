@@ -34,11 +34,9 @@ export default class AuthService {
         return axios
         .put(`http://127.0.0.1:8000/users/${userId}/`, user)
         .then((response) => {
-          console.log(response)
           return response
         })
         .catch((error) => {
-          console.log(error)
           if (error) {
             return error
           };

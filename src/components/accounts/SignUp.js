@@ -29,7 +29,6 @@ export default function SignUp() {
     e.preventDefault();
 
     AuthService.register(user).then(resp => {
-        console.log(resp)
       if (resp.status == 201) {
         navigate('/signin');
       } else {

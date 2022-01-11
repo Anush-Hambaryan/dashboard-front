@@ -1,8 +1,6 @@
 import React from 'react'
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import { Typography, Button} from "@mui/material";
 
@@ -21,10 +19,9 @@ export default function ReportDialog({openReportDialog, setReportDialog, jobInDi
         <DialogTitle id="alert-dialog-title">
             <Typography variant="overline" style={{fontWeight: 'bold', fontSize: 18 }} color={jobInDialog.status == 'sold' ? 'secondary' : 'green'} >{jobInDialog.status} </Typography>
             </DialogTitle>
-            <DialogContent>
-            <DialogContentText id="alert-dialog-description" style={{display: 'flex', flexDirection: 'column'}}>
+            <div id="alert-dialog-description" style={{display: 'flex', flexDirection: 'column', padding: 22}}>
                 <div style={{display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>
-                    <Typography color="black" variant="overline" style={{marginRight: 10, fontWeight: 'bold' }}>Owner:</Typography>
+                    <Typography color="black" variant="overline" style={{marginRight: 10, fontWeight: 'bold' }}>User:</Typography>
                     <Typography variant="subtitle2" style={{marginRight: 5, marginTop: -2,}}>{jobInDialog.owner?.first_name}</Typography>
                     <Typography variant="subtitle2" style={{marginTop: -2,}}>{jobInDialog.owner?.last_name}</Typography>
                 </div>
@@ -55,13 +52,13 @@ export default function ReportDialog({openReportDialog, setReportDialog, jobInDi
                 {(jobInDialog.shape == 'circle' && jobInDialog.coords) && 
                     <div style={{display: 'flex', alignItems: 'center'}}>
                         <Typography color="black" variant="overline" style={{marginRight: 12, fontWeight: 'bold' }}>Center:</Typography>
-                        <Typography variant="subtitle2">{`Lat: ${jobInDialog.coords[0]?.lat} Lng: ${jobInDialog.coords[0]?.lng}`} </Typography>
+                        <Typography variant="subtitle2">{`Lat: ${Math.round(jobInDialog.coords[0]?.lat *100)/100} \u00A0\u00A0 Lng: ${Math.round(jobInDialog.coords[0]?.lng *100)/100}`} </Typography>
                     </div>
                 }
                 {jobInDialog.shape == 'circle' && 
                     <div style={{display: 'flex', alignItems: 'center'}}>
                         <Typography color="black" variant="overline" style={{marginRight: 12, fontWeight: 'bold' }}>Radius:</Typography>
-                        <Typography variant="subtitle2">{jobInDialog.radius}</Typography>
+                        <Typography variant="subtitle2">{Math.round(jobInDialog.radius/1000*100)/100} km</Typography>
                     </div>
                 }
                 
@@ -69,7 +66,7 @@ export default function ReportDialog({openReportDialog, setReportDialog, jobInDi
                 jobInDialog.coords.map((item, i) => (
                     <div style={{display: 'flex', alignItems: 'center'}}>
                         <Typography color="black" variant="overline" style={{marginRight: 12, fontWeight: 'bold' }}>Vertex {i+1}:</Typography>
-                        <Typography variant="subtitle2" key={i}>{`Lat: ${item.lat} \u00A0\u00A0\ Lng: ${item.lng}`}</Typography>
+                        <Typography variant="subtitle2" key={i}>{`Lat: ${parseFloat(item.lat).toFixed(4)} \u00A0\u00A0\ Lng: ${parseFloat(item.lng).toFixed(4)}`}</Typography>
                     </div>
                 ))
                 }
@@ -83,8 +80,7 @@ export default function ReportDialog({openReportDialog, setReportDialog, jobInDi
                     <Typography color="black" variant="overline" style={{marginRight: 12, fontWeight: 'bold' }}>Date:</Typography>
                     <Typography variant="subtitle2">{new Date(jobInDialog.created).toLocaleDateString()}</Typography>
                 </div>
-            </DialogContentText>
-            </DialogContent>
+            </div>
             <DialogActions>
                 <Button onClick={handleClose}>Close</Button>
             </DialogActions>

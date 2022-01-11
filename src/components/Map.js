@@ -1,12 +1,28 @@
 import React, {useRef, useEffect} from 'react'
 import GoogleMapReact from "google-map-react";
-import { mdiMapMarkerOutline} from '@mdi/js';
+import { mdiMapMarkerOutline, mdiGoogleMaps} from '@mdi/js';
 import Icon from '@mdi/react';
 import {Paper, Typography } from "@mui/material";
 import ReportDialog from './ReportDialog';
 
+function mapOptionsCreator(map) {
+  return  { 
+    fullscreenControl: false, 
+    zoomControlOptions: { 
+      position: map.ControlPosition.LEFT_BOTTOM,
+    } 
+  }
+}
 
-function Map({ drawingManager, mapsRef, circleButton, polygonButton, setRadius, setCoords, standardJobReports, job5Reports }) {
+const shapeOptions = {
+    draggable: true,
+    strokeWeight: 2,
+    clickable: true,
+    editable: true,
+    strokeColor: "#606060",
+  }
+
+function Map({ drawingManager, mapsRef, circleButton, polygonButton, setRadius, setCoords, standardJobReports, job5Running, job5Reports }) {
 
     const polygonVertices = useRef(null);
     const currentShape = useRef(null);
@@ -26,51 +42,42 @@ function Map({ drawingManager, mapsRef, circleButton, polygonButton, setRadius, 
     }
 
     const handleApiLoaded = (map, maps) => {
-        mapsRef.current = maps;
-        currentMap.current = map;
-        drawingManager.current = new maps.drawing.DrawingManager({
-          drawingControl: false,
-            circleOptions: {
-              draggable: true,
-              strokeWeight: 2,
-              clickable: true,
-              editable: true,
-          },
-          polygonOptions: {
-              draggable: true,
-              strokeWeight: 2,
-              clickable: true,
-              editable: true,
-            },
-        })
-       drawingManager.current.setMap(map);
+      mapsRef.current = maps;
+      currentMap.current = map;
+      drawingManager.current = new maps.drawing.DrawingManager({
+        drawingControl: false,
+        circleOptions: shapeOptions,
+        polygonOptions: shapeOptions,
+      })
+      drawingManager.current.setMap(map);
   
-       mapsRef.current.event.addListener(drawingManager.current, 'overlaycomplete', function(shape) {
+      mapsRef.current.event.addListener(drawingManager.current, 'overlaycomplete', function(shape) {
         
-      if (shape.type == 'circle') {
-        currentShape.current = shape.overlay;
-        circleButton.current.click();
-        const radius = shape.overlay.getRadius().toFixed(6);
-        const center = shape.overlay.getCenter();
-        setRadius(radius);
-        setCoords([{
-          lat: center.lat().toFixed(6),
-          lng: center.lng().toFixed(6),
-        }]);
-
-        mapsRef.current.event.addListener(currentShape.current,'radius_changed',function(){
+        if (shape.type == 'circle') {
+          currentShape.current = shape.overlay;
+          circleButton.current.click();
           const radius = shape.overlay.getRadius().toFixed(6);
-          setRadius(radius);
-        })
-        mapsRef.current.event.addListener(currentShape.current,'dragend',function(){
           const center = shape.overlay.getCenter();
+          setRadius(radius);
           setCoords([{
             lat: center.lat().toFixed(6),
             lng: center.lng().toFixed(6),
           }]);
-        })
-      }
+
+          mapsRef.current.event.addListener(currentShape.current,'radius_changed',function(){
+            const radius = shape.overlay.getRadius().toFixed(6);
+            setRadius(radius);
+          })
+          mapsRef.current.event.addListener(currentShape.current,'dragend',function(){
+            const center = shape.overlay.getCenter();
+            setCoords([{
+              lat: center.lat().toFixed(6),
+              lng: center.lng().toFixed(6),
+            }]);
+          })
+        }
       if (shape.type == 'polygon') {
+        currentShape.current = shape.overlay;
         polygonButton.current.click();
 
         polygonVertices.current = shape.overlay.getPath();
@@ -92,14 +99,17 @@ function Map({ drawingManager, mapsRef, circleButton, polygonButton, setRadius, 
     }
 
     useEffect(() => {
-      if (job5Reports.length > 0) {
+      job5ReportsShapes.current.forEach(item => {
+        item.setMap(null);
+      })
+      job5ReportsShapes.current = [];
         job5Reports.forEach(report => {
           if (report.shape == 'polygon') {
             const coords = report.coords.map(item => ({
               lat: parseFloat(item.lat), 
               lng: parseFloat(item.lng)
             }));
-            const polygon = new mapsRef.current.Polygon({paths: coords})
+            const polygon = new mapsRef.current.Polygon({paths: coords, options: {strokeColor: "#606060", strokeWeight: 2,}})
             mapsRef.current.event.addListener(polygon, 'click', () => handleClickOpen(report));
             polygon.setMap(currentMap.current)
             job5ReportsShapes.current.push(polygon)
@@ -108,18 +118,17 @@ function Map({ drawingManager, mapsRef, circleButton, polygonButton, setRadius, 
               lat: parseFloat(report.coords[0].lat),
               lng: parseFloat(report.coords[0].lng)
             }
-           const circle = new mapsRef.current.Circle({center: coords, radius: parseFloat(report.radius)})
-           mapsRef.current.event.addListener(circle, 'click', () => handleClickOpen(report));
+            const circle = new mapsRef.current.Circle({center: coords, radius: parseFloat(report.radius), options: {strokeColor: "#606060", strokeWeight: 2,}})
+            mapsRef.current.event.addListener(circle, 'click', () => handleClickOpen(report));
             circle.setMap(currentMap.current)
             job5ReportsShapes.current.push(circle)
           }
         })
-      } else {
-        job5ReportsShapes.current.forEach(item => {
-          item.setMap(null);
-        })
-      }
     }, [job5Reports])
+
+    useEffect(() => {
+      currentShape.current && currentShape.current.setMap(null);
+    }, [job5Running])
 
 
     const [openReportDialog, setReportDialog] = React.useState(false);
@@ -141,7 +150,7 @@ function Map({ drawingManager, mapsRef, circleButton, polygonButton, setRadius, 
         hoverDistance={20}
         yesIWantToUseGoogleMapApiInternals //this is important!
         onGoogleApiLoaded={({ map, maps }) => handleApiLoaded(map, maps)}
-        options={{ fullscreenControl: false, }}
+        options={mapOptionsCreator}
         > 
         {standardJobReports.map(
           report =>  (
@@ -150,7 +159,7 @@ function Map({ drawingManager, mapsRef, circleButton, polygonButton, setRadius, 
             <Paper onClick={() => handleClickOpen(report)} style={{ cursor: 'pointer', backgroundColor: 'white', paddingLeft: 5, paddingRight: 5, display: 'flex', flexDirection: 'row', alignItems: 'center'}} elevation={6}>
               <Typography variant="overline" color={report.status == 'sold' ? 'secondary' : 'green'} style={{fontSize: 10 , fontWeight: 'bold'}}>{report.status} </Typography>
             </Paper>
-            <Icon path={mdiMapMarkerOutline} size={1.3} />
+            <Icon path={mdiGoogleMaps} size={1.3} color="#606060"/>
             </div>)
         )}
       </GoogleMapReact>
@@ -163,4 +172,4 @@ function Map({ drawingManager, mapsRef, circleButton, polygonButton, setRadius, 
     )
 }
 
-export default Map;
+export default React.memo(Map);

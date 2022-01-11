@@ -7,6 +7,16 @@ import SignUp from './components/accounts/SignUp'
 import SignIn from './components/accounts/SignIn'
 import Profile from './components/accounts/Profile';
 
+
+const PrivateRoute = ({ children }) => {
+  return localStorage.getItem("token") ? (
+    children
+  ) : (
+    <Navigate to="/signin" />
+  )
+}
+
+
 function App() {
   let head = document.getElementsByTagName("head")[0];
   let insertBefore = head.insertBefore;
@@ -23,10 +33,11 @@ function App() {
       </header>
       <BrowserRouter>
         <Routes>
-            <Route path="" exact element={localStorage.getItem("token") ? <Dashboard/> : <Navigate to="/signin" /> }/>
-            <Route path="profile" element={localStorage.getItem("token") ? <Profile /> : <Navigate to="/signin" /> }/>
-            <Route path="signup" element={<SignUp />} />
-            <Route path="signin" element={<SignIn />} />
+            <Route path="/" exact element={<PrivateRoute> <Dashboard/> </PrivateRoute>}/>
+            <Route path="/profile" element={<PrivateRoute> <Profile /> </PrivateRoute>}/>
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="*" element={<PrivateRoute> <Dashboard/> </PrivateRoute>}/>
         </Routes>
       </BrowserRouter> 
     </div>

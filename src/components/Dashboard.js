@@ -65,19 +65,21 @@ export default function Dashboard() {
   const [job5Reports, setJob5Reports] = useState([])
   const [reportsToggle, setReportsToggle] = useState(false)
   const [searchParams, setSearchParams] = useState({owner: null, job_type: null })
+  const [updateJobReports, setUpdateJobReports] = useState(false)
 
   const handleJob = (jobType, duration, data, id) => {
     if ((jobType != 'job5' && data.address == '') || (jobType == 'job5' && data.coords == null)) {
       return;
     }
     const job = {
-      id: id ? id : jobs.length, 
+      id: id, 
       type: jobType, 
-      status: data.status ? data.status : jobsInProgress <= 9 ? "inProgress" : "pending", 
+      status: jobsInProgress < 10 ? 'inProgress' : 'pending',
       duration: duration, 
       address: data.address || null, 
       coords: data.coords || null,
       radius: data.radius || null,
+      dbID: '',
     }
     setJob(prevState => [...prevState, job])
     if (job.status == "inProgress") {
@@ -113,28 +115,32 @@ export default function Dashboard() {
         },
         (error) => {
         });
-
-      // post to backend
-      apiService.postJobReport("standardJobs", {job_type: jobType, address: job.address, status: status, coords: [coords]})
-    } else {
-      apiService.postJobReport("jobs5", { shape: job.radius ? 'circle' : 'polygon',  coords: job.coords, radius: job.radius, })
-    }
+    } 
       
-    setTimeout(() => {
+    setTimeout(async () => {
+      let dbID;
+      // post to backend
+      if (job.type != "job5") {
+       await apiService.postJobReport("standardJobs", {job_type: jobType, address: job.address, status: status, coords: [coords]})
+        .then(resp => { dbID = resp.data.id })
+      } else {
+        await apiService.postJobReport("jobs5", { shape: job.radius ? 'circle' : 'polygon',  coords: job.coords, radius: job.radius, })
+        .then(resp => {
+          dbID = resp.data.id
+        })
+      }
+
       setJob(prevState => {
         const newState = [...prevState];
         newState[job.id].status = "finished";
+        newState[job.id].dbID = dbID;
         if (newState[job.id].type != "job5") {
           newState[job.id].coords = coords;
         }
         return newState;
       })
 
-      if (job.type != "job5") {
-        reportsToggle && setStandardJobReports(prev => [...prev, {owner: {first_name: user.first_name, last_name: user.last_name}, job_type: jobType, address: job.address, status: status, coords: [coords], created: new Date()}])
-      } else {
-        reportsToggle && setJob5Reports(prev => [...prev, {owner: {first_name: user.first_name, last_name: user.last_name}, shape: job.radius ? 'circle' : 'polygon',  coords: job.coords, radius: job.radius, created: new Date() }])
-      }
+      setUpdateJobReports(prev => !prev)
       
       setJobsFinished(prevState => prevState + 1);
       setJobsInProgress(prevState => prevState - 1);
@@ -147,29 +153,25 @@ export default function Dashboard() {
   useEffect(() => {
     if (reportsToggle) {
       if (searchParams.job_type == null) {
-        apiService.getJobReports('standardJobs', {owner: searchParams.owner})
+       apiService.getJobReports('standardJobs', {owner: searchParams.owner})
         .then(resp => {
           setStandardJobReports(resp.data)
-          console.log(resp.data)
         })
-        user.level == "level_3" && apiService.getJobReports('jobs5', {owner: searchParams.owner })
+       user.level == "level_3" && apiService.getJobReports('jobs5', {owner: searchParams.owner })
         .then(resp => {
           setJob5Reports(resp.data)
-          console.log(resp)
         })
       } else if (searchParams.job_type == 5) {
         setStandardJobReports([])
         user.level == "level_3" && apiService.getJobReports('jobs5', {owner: searchParams.owner })
         .then(resp => {
           setJob5Reports(resp.data)
-          console.log(resp)
         })
       } else {
         setJob5Reports([])
         apiService.getJobReports('standardJobs', {owner: searchParams.owner, job_type: searchParams.job_type})
         .then(resp => {
           setStandardJobReports(resp.data)
-          console.log(resp.data)
         })
       }
     } else {
@@ -177,11 +179,9 @@ export default function Dashboard() {
       setJob5Reports([]);
     }
     
-  }, [reportsToggle, searchParams])
+  }, [reportsToggle, searchParams, updateJobReports])
 
   const handleFilter = (parameter) => {
-    console.log(parameter)
-    console.log(user.username)
     if (parameter == user.username) {
       setSearchParams(prev => prev.owner ? ({...prev, owner: null}) : ({...prev, owner: user.id}))
     } else {
@@ -192,14 +192,14 @@ export default function Dashboard() {
   return (
     <div className="App">
       <Actions reportsToggle={reportsToggle} user={user} sideBarOpen={open} handleJob={handleJob} jobs={jobs} standardJobReports={standardJobReports} job5Reports={job5Reports}/>
-      <Paper elevation={8} style={{ paddingRight: 10, position: 'absolute', left: 20, top: 85,}}>
-        <Typography variant="overline" style={{marginLeft: 10, fontWeight: 'bold'}}>Reports</Typography>
+      <Paper elevation={8} style={{ paddingRight: 10, position: 'absolute', left: 10, top: 85,}}>
+        <Typography color="primary" variant="overline" style={{marginLeft: 10, fontWeight: 'bold'}}>Reports</Typography>
         <Switch onChange={() => setReportsToggle(prev => !prev)} />
       </Paper>
 
-      <div style={{ position: 'absolute', marginLeft: 20, zIndex: 3, top: 170, display: reportsToggle ? 'flex' : 'none', flexDirection: 'column' }}>
+      <div style={{ position: 'absolute', marginLeft: 10, zIndex: 3, top: 170, display: reportsToggle ? 'flex' : 'none', flexDirection: 'column' }}>
       
-        <Fab  onClick={() => handleFilter(user.username)} 
+        <Fab onClick={() => handleFilter(user.username)} 
         style={{ color: searchParams.owner ? 'white' : 'black', backgroundColor: searchParams.owner ? '#1a76d2' : 'white', marginBottom: 10, fontSize: 10}} size="medium">
           My
         </Fab>
@@ -218,17 +218,17 @@ export default function Dashboard() {
           onClick={handleDrawerOpen}
           sx={{ ...(open && { display: 'none' }) }}
         >
-          <Typography variant="overline" style={{fontWeight: 'bold'}}>JOBS</Typography>
+          <Typography color="primary" variant="overline" style={{fontWeight: 'bold'}}>JOBS</Typography>
         </Paper>
       </Badge>
       </div>
 
       <Drawer
         sx={{
-          width: matchesMedium ? '100%' : '30%',
+          width: matchesMedium ? '100%' : '35%',
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: matchesMedium ? '100%' : '30%',
+            width: matchesMedium ? '100%' : '35%',
             backgroundColor: 'white',
             top: 62,
           },
@@ -249,6 +249,9 @@ export default function Dashboard() {
           jobsFinished={jobsFinished}
           jobsInProgress={jobsInProgress}
           jobsPending={jobsPending}
+          standardJobReports={standardJobReports}
+          job5Reports={job5Reports}
+          reportsToggle={reportsToggle}
         />
       </Drawer>
     </div>

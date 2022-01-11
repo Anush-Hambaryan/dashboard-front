@@ -14,7 +14,8 @@ export default function Actions(props) {
   useEffect(() => {
     setAccessToJobs({
       first: props.user?.level == "level_1" || props.user?.level == "level_3" ? 1 : props.user?.level == "level_2" ? 3 : null,
-      second: props.user?.level == "level_1" ? 2 : props.user?.level == "level_2" || props.user?.level == "level_3" ? 4 : null
+      second: props.user?.level == "level_1" ? 2 : props.user?.level == "level_2" || props.user?.level == "level_3" ? 4 : null,
+      third: props.user?.level == "level_3" ? 5 : null
     })
   }, [props.user])
 
@@ -27,11 +28,13 @@ export default function Actions(props) {
   const circleButton = useRef(null);
   const polygonButton = useRef(null);
 
+  const [jobCount, setJobCount] = useState([])
   const [address, setAddress] = useState('');
   const [radius, setRadius] = useState(null);
   const [coords, setCoords] = useState(null);
   const [textFileAddresses, setTextFileAddresses] = useState([]);
   const [fileUploadMessage, setFileUploadMessage] = useState(false);
+  const [job5Running, setjob5Running] = useState(false);
 
     
   const handleChange = (e, newValue) =>  {
@@ -45,7 +48,6 @@ export default function Actions(props) {
       drawingManager.current.setDrawingMode(mapsRef.current.drawing.OverlayType[type]);
     }
   }
-  
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -62,17 +64,41 @@ export default function Actions(props) {
   }
 
   const handleRunJobClick = (value) => {
-    const job = accessToJobs[value];
-    const duration = job == 1 ? 20000 : job == 2 ? 40000 : job == 3 ? 100000 : job == 4 ? 150000 : null;
-    if (textFileAddresses.length) {
-      textFileAddresses.forEach((address, i) => {
-        setTimeout(() => {
-          props.handleJob(`job${accessToJobs[value]}`, duration, {address: address, status: i <= 9 ? 'inProgress' : 'pending' }, i );
-        }, i*100);
-      })
+    if (value != 'third') {
+      if (textFileAddresses.length) {
+        for (let i = 0; i < textFileAddresses.length; i++) {
+          setTimeout(() => {
+          setJobCount(prev => [...prev, {address: textFileAddresses[i],  value : value }]);
+          }, i*100);
+        }
+        setTextFileAddresses([]);
+      }
+      if (address) {
+        setJobCount(prev => [...prev, {value : value}]);
+      }
+    } else {
+      setJobCount(prev => [...prev, {value : value}]);
     }
-    props.handleJob(`job${accessToJobs[value]}`, duration, {address: address, status: null});
   }
+
+  useEffect(() => {
+    const data = jobCount[jobCount.length - 1]
+    if (data) {
+      const value = data.value;
+      const job = accessToJobs[value];
+      const duration = job == 1 ? 20000 : job == 2 ? 40000 : job == 3 ? 100000 : job == 4 ? 150000 : job == 5 ? 30000 : null;
+      if (job != 5) {
+        props.handleJob(`job${accessToJobs[value]}`, duration, {address: data.address ? data.address : address }, jobCount.length - 1);
+      } else {
+        setjob5Running(prev => !prev);
+        props.handleJob(`job${accessToJobs[value]}`, duration, {radius : radius, coords: coords}, jobCount.length - 1);
+        setCoords(null);
+        setRadius(null);
+      }
+    }
+    setAddress('');
+
+  }, [jobCount])
 
   const [openedPopover, setOpenedPopover] = useState(false);
 
@@ -82,7 +108,7 @@ export default function Actions(props) {
     
     return (
         <>
-        <Paper elevation={4} style={{ borderRadius: 0, position: 'absolute', left: 0, zIndex: 3, top: 0, width: '100%'}}> 
+        <Paper elevation={4} style={{ borderRadius: 0, position: 'absolute', left: 0, zIndex: 10, top: 0, width: '100%'}}> 
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center',  padding: 10}}>
           <Grid container spacing={2} display={matchesMedium ? 'none' : 'flex'} >
             <Grid item md={4}>
@@ -97,7 +123,6 @@ export default function Actions(props) {
               <div style={{ marginRight: 10}}>
                 <input
                     style={{ display: "none" }}
-                    multiple={false}
                     type="file"
                     id="button-file"
                     onChange={handleFileChange}
@@ -144,24 +169,27 @@ export default function Actions(props) {
                     <Icon path={mdiShapePolygonPlus} size={1} />
                 </ToggleButton>
                 </ToggleButtonGroup>
-                <Button variant="outlined" onClick={() => props.handleJob("job5", 30000, {radius : radius, coords: coords})}>
+                <Button variant="outlined" onClick={() => handleRunJobClick('third')}>
                 Job 5
                 </Button>
                 </>}
             </Grid>
           </Grid>
           <>
+
+          {/* Mobile view */}
+          
           <Button 
           variant="contained" 
-          style={{marginLeft: 10, width: 133, display: matchesMedium ? 'block' : 'none'}} 
+          style={{marginLeft: 0, width: 143, display: matchesMedium ? 'block' : 'none'}} 
           aria-owns={openedPopover ? "mouse-over-popover" : undefined}
           aria-haspopup="true"
           onClick={(e) =>  {e.stopPropagation(); setOpenedPopover(prev => !prev);}}
           >Actions</Button>
             <Paper
               onClick={(e) =>  {e.stopPropagation();}}
-              elevation={4}
-              style={{ position: 'absolute', top: 60, left: 20, display: openedPopover && matchesMedium ? 'flex' : 'none', flexDirection: 'column', padding: 15}}>
+              elevation={12}
+              style={{ width: '65%', zIndex: 23, position: 'absolute', top: 60, left: 10, display: openedPopover && matchesMedium ? 'flex' : 'none', flexDirection: 'column', padding: 15}}>
               <TextField
                 size='small'
                 value={address}
@@ -220,7 +248,7 @@ export default function Actions(props) {
                         <Icon path={mdiShapePolygonPlus} size={1} />
                       </ToggleButton>
                     </ToggleButtonGroup>
-                    <Button variant="outlined" onClick={() => props.handleJob("job5", 8000, {radius : radius, coords: coords})}>
+                    <Button variant="outlined" onClick={() => handleRunJobClick('third')}>
                     Job 5
                     </Button>
                 </div>
@@ -248,6 +276,7 @@ export default function Actions(props) {
           setCoords={setCoords}
           standardJobReports={props.standardJobReports}
           job5Reports={props.job5Reports}
+          job5Running={job5Running}
           reportsToggle={props.reportsToggle}
           user={props.user}
           />
